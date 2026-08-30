@@ -1,4 +1,4 @@
 interface:
-  display_name: "FlyWolf 富士现场配方师"
-  short_description: "Analyze a scene photo and create a practical Fujifilm JPEG recipe."
-  default_prompt: "Use $FlyWolf-fuji-scene-recipe-master to analyze this scene photo and give me one practical Fujifilm JPEG recipe. Use my camera model and target look when provided."
+  display_name: "FlyWolf 富士现场配方师 3.0"
+  short_description: "按现场图生成 3 套富士 JPEG 配方，并可按反馈重做。"
+  default_prompt: "Use $flywolf-fuji-scene-recipe-master to analyze my uploaded scene photo and give me three practical Fujifilm JPEG recipes. If I reject them, use my specific reason to generate three revised recipes."
