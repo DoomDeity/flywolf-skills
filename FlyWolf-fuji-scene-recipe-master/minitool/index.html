@@ -28,7 +28,7 @@
               <h2 id="inputTitle">先把现场带进来</h2>
             </div>
           </div>
-          <p class="heading-note">照片只在本地分析</p>
+          <p class="heading-note">照片仅在本地分析</p>
         </div>
 
         <div class="upload-grid">
@@ -50,27 +50,31 @@
 
         <div class="controls">
           <label class="field">
-            <span>相机型号 <em>可选</em></span>
-            <input id="cameraModel" type="text" maxlength="40" placeholder="例如 X100VI / X-T5" autocomplete="off" />
+            <span>主要拍什么？ <em>帮助本地分析选择方向</em></span>
+            <select id="subjectSelect">
+              <option value="portrait">人像</option>
+              <option value="landscape">风景</option>
+              <option value="street">街拍</option>
+              <option value="architecture">建筑</option>
+              <option value="food">食物</option>
+              <option value="night">夜景</option>
+              <option value="other">其他</option>
+            </select>
           </label>
           <label class="field">
-            <span>想要的方向 <em>可选</em></span>
+            <span>想要什么感觉？ <em>决定三套风格梯度</em></span>
             <select id="lookSelect">
-              <option value="auto">让现场决定</option>
+              <option value="auto">自动推荐</option>
+              <option value="natural">自然耐看</option>
               <option value="clean">日系清透</option>
               <option value="film">复古胶片</option>
               <option value="cinema">电影感</option>
-              <option value="warm">暖调人像</option>
-              <option value="vivid">风景浓郁</option>
+              <option value="vivid">浓郁</option>
               <option value="low-sat">低饱和</option>
               <option value="bw">黑白纪实</option>
             </select>
           </label>
         </div>
-        <label class="field context-field">
-          <span>场景 / 主体 <em>可选，帮助判断取向</em></span>
-          <input id="sceneContext" type="text" maxlength="60" placeholder="例如：阴天街景、窗边人像、咖啡馆、夜景霓虹" autocomplete="off" />
-        </label>
 
         <div class="action-row">
           <button id="analyzeButton" class="primary-button" type="button">
@@ -124,18 +128,22 @@
               </div>
             </div>
           </div>
-          <p class="feedback-intro">告诉我最不满意的地方，保留这张现场图，下一轮会重新给出 3 套完整方案。</p>
+          <p class="feedback-intro">告诉我哪里不满意，快捷选择或补充一句话，下一轮会重新给出 3 套完整方案。</p>
           <div id="feedbackChips" class="chip-row" aria-label="常见反馈">
-            <button class="chip" type="button" data-feedback="太黄，肤色不自然">太黄</button>
-            <button class="chip" type="button" data-feedback="太艳，颜色太重">太艳</button>
-            <button class="chip" type="button" data-feedback="太灰，没层次">太灰</button>
-            <button class="chip" type="button" data-feedback="太硬，太数码">太硬</button>
-            <button class="chip" type="button" data-feedback="不够复古">不够复古</button>
-            <button class="chip" type="button" data-feedback="想要更清透">更清透</button>
-            <button class="chip" type="button" data-feedback="高光容易溢出">高光溢出</button>
+            <button class="chip" type="button" data-feedback="太黄">太黄</button>
+            <button class="chip" type="button" data-feedback="太冷">太冷</button>
+            <button class="chip" type="button" data-feedback="太艳">太艳</button>
+            <button class="chip" type="button" data-feedback="太灰">太灰</button>
+            <button class="chip" type="button" data-feedback="太硬">太硬</button>
+            <button class="chip" type="button" data-feedback="太暗">太暗</button>
+            <button class="chip" type="button" data-feedback="高光太亮">高光太亮</button>
             <button class="chip" type="button" data-feedback="暗部太黑">暗部太黑</button>
+            <button class="chip" type="button" data-feedback="不够胶片">不够胶片</button>
+            <button class="chip" type="button" data-feedback="不够清透">不够清透</button>
+            <button class="chip" type="button" data-feedback="想更自然">想更自然</button>
+            <button class="chip" type="button" data-feedback="想更有氛围">想更有氛围</button>
           </div>
-          <textarea id="feedbackInput" maxlength="240" rows="3" placeholder="例如：三套都太黄、太艳了，但我想保留现场暖光，请更干净一些。"></textarea>
+          <textarea id="feedbackInput" maxlength="240" rows="3" placeholder="例如：第二套方向不错，但绿色有点脏、暗部太黑；保留这个感觉，再通透柔和一点。"></textarea>
           <div class="feedback-actions">
             <button id="reviseButton" class="secondary-button" type="button">按反馈再给 3 套方案 <b>↗</b></button>
             <p id="feedbackMessage" class="message" role="status"></p>
@@ -144,7 +152,7 @@
       </div>
     </main>
 
-    <footer class="footer-note">现场试拍起点，不是百分之百复刻。屏幕显示、压缩和实际光线都会影响最终效果。</footer>
+    <footer class="footer-note">照片仅在本地设备进行图像特征分析，不上传照片。现场试拍是起点，屏幕显示、压缩和实际光线都会影响最终效果。</footer>
   </div>
 
   <script src="./assets/app.js"></script>

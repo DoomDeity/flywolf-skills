@@ -9,9 +9,8 @@
     previewImage: document.getElementById('previewImage'),
     imageMeta: document.getElementById('imageMeta'),
     replaceButton: document.getElementById('replaceButton'),
-    cameraModel: document.getElementById('cameraModel'),
+    subjectSelect: document.getElementById('subjectSelect'),
     lookSelect: document.getElementById('lookSelect'),
-    sceneContext: document.getElementById('sceneContext'),
     analyzeButton: document.getElementById('analyzeButton'),
     inputMessage: document.getElementById('inputMessage'),
     resultsSection: document.getElementById('resultsSection'),
@@ -35,58 +34,76 @@
     analysis: null,
     output: null,
     round: 0,
-    cameraModel: '',
-    lookKey: 'auto',
-    sceneContext: ''
+    subjectKey: 'portrait',
+    lookKey: 'auto'
+  };
+
+  var SUBJECT_LABELS = {
+    portrait: '人像',
+    landscape: '风景',
+    street: '街拍',
+    architecture: '建筑',
+    food: '食物',
+    night: '夜景',
+    other: '其他'
+  };
+
+  var LOOK_LABELS = {
+    auto: '自动推荐',
+    natural: '自然耐看',
+    clean: '日系清透',
+    film: '复古胶片',
+    cinema: '电影感',
+    vivid: '浓郁',
+    'low-sat': '低饱和',
+    bw: '黑白纪实'
   };
 
   var SLOT_META = [
     {
       code: 'A',
-      title: '安全还原',
-      role: '优先保住高光、肤色和白色，适合先试拍。',
-      change: '取向最稳，反差和特殊效果最克制。',
-      risk: '高光更保守，画面可能比现场观感略平。'
+      title: '自然稳妥',
+      role: '尽量尊重现场，颜色干净，反差和特殊效果更有容错。',
+      change: '以现场为基准，先保护主体和高光。',
+      risk: '风格最克制，可能不如强化方案醒目。'
     },
     {
       code: 'B',
-      title: '氛围平衡',
-      role: '在不牺牲曝光的前提下，把目标风格放进现场。',
-      change: '冷暖、色彩和反差更明显，氛围感居中。',
-      risk: '混合光或肤色复杂时，需要看一张试拍再微调。'
+      title: '目标风格',
+      role: '把你选择的感觉放进现场，保留主体的可读性。',
+      change: '风格、色彩和影调向目标感觉明显靠近。',
+      risk: '混合光或复杂肤色仍建议先试一张。'
     },
     {
       code: 'C',
-      title: '风格强化',
-      role: '把复古、电影、浓郁或低饱和方向再推一步。',
-      change: '风格最强，颗粒、暗部或色彩取舍更明确。',
-      risk: '高光容错和肤色稳定性最低，不适合盲拍整组。'
+      title: '个性强化',
+      role: '把胶片、电影、浓郁、低饱和或黑白质感再推一步。',
+      change: '风格取舍最明确，适合比较审美方向。',
+      risk: '容错最低，适合小范围试拍。'
     }
   ];
 
   var STYLE_PROFILES = {
-    auto: {
-      key: 'auto',
-      label: '现场自适应',
+    natural: {
+      key: 'natural',
+      label: '自然耐看',
       type: 'color',
-      films: ['PROVIA', 'REALA ACE', 'Classic Chrome'],
-      names: ['现场安全还原', '现场氛围平衡', '现场风格强化'],
+      films: ['PROVIA', 'REALA ACE', 'ASTIA'],
       colorBase: 0,
       sharpBase: 0,
       clarityBase: 0,
-      grainModes: ['关闭', '弱', '弱'],
-      chromeModes: ['关闭', '弱', '强'],
-      fxModes: ['关闭', '关闭', '弱']
+      grainModes: ['关闭', '关闭', '弱'],
+      chromeModes: ['关闭', '弱', '弱'],
+      fxModes: ['关闭', '关闭', '关闭']
     },
     clean: {
       key: 'clean',
       label: '日系清透',
       type: 'color',
       films: ['REALA ACE', 'ASTIA', 'PROVIA'],
-      names: ['清透留白', '日光柔和', '轻胶片清晰感'],
       colorBase: 0,
       sharpBase: 1,
-      clarityBase: 0,
+      clarityBase: 1,
       grainModes: ['关闭', '关闭', '弱'],
       chromeModes: ['关闭', '弱', '弱'],
       fxModes: ['关闭', '关闭', '关闭']
@@ -96,11 +113,10 @@
       label: '复古胶片',
       type: 'color',
       films: ['Classic Chrome', 'Classic Neg.', 'Nostalgic Neg.'],
-      names: ['经典街拍', '复古颗粒', '旧色强化'],
       colorBase: 0,
       sharpBase: -1,
       clarityBase: -1,
-      grainModes: ['关闭', '弱', '强'],
+      grainModes: ['弱', '强', '强'],
       chromeModes: ['弱', '强', '强'],
       fxModes: ['关闭', '弱', '弱']
     },
@@ -109,11 +125,10 @@
       label: '电影感',
       type: 'color',
       films: ['ETERNA', 'Classic Chrome', 'Classic Neg.'],
-      names: ['高光保留', '低饱和电影', '暗部氛围'],
       colorBase: -1,
       sharpBase: -1,
       clarityBase: -2,
-      grainModes: ['关闭', '弱', '弱'],
+      grainModes: ['关闭', '弱', '强'],
       chromeModes: ['弱', '弱', '强'],
       fxModes: ['关闭', '弱', '弱']
     },
@@ -122,7 +137,6 @@
       label: '暖调人像',
       type: 'color',
       films: ['ASTIA', 'Nostalgic Neg.', 'PRO Neg. Std'],
-      names: ['肤色柔和', '暖光自然', '暖调胶片'],
       colorBase: 0,
       sharpBase: 0,
       clarityBase: -1,
@@ -132,14 +146,13 @@
     },
     vivid: {
       key: 'vivid',
-      label: '风景浓郁',
+      label: '浓郁',
       type: 'color',
       films: ['REALA ACE', 'Velvia', 'Classic Chrome'],
-      names: ['自然浓郁', '风景饱和', '色彩强化'],
       colorBase: 1,
       sharpBase: 1,
       clarityBase: 1,
-      grainModes: ['关闭', '弱', '弱'],
+      grainModes: ['关闭', '弱', '强'],
       chromeModes: ['弱', '强', '强'],
       fxModes: ['关闭', '弱', '强']
     },
@@ -148,7 +161,6 @@
       label: '低饱和',
       type: 'color',
       films: ['ETERNA', 'Classic Chrome', 'PROVIA'],
-      names: ['轻灰质感', '克制电影', '低饱和强化'],
       colorBase: -2,
       sharpBase: -1,
       clarityBase: -1,
@@ -160,9 +172,7 @@
       key: 'bw',
       label: '黑白纪实',
       type: 'bw',
-      films: ['ACROS', 'ACROS + Ye', 'ACROS + R'],
-      names: ['ACROS 细节', 'ACROS 黄滤镜', 'ACROS 红滤镜'],
-      filters: ['标准', 'Ye', 'R'],
+      films: ['ACROS', 'ACROS+Ye FILTER', 'ACROS+R FILTER', 'ACROS+G FILTER'],
       colorBase: 0,
       sharpBase: 0,
       clarityBase: 0,
@@ -172,30 +182,12 @@
     }
   };
 
-  var FEEDBACK_RULES = [
-    { key: 'tooWarm', label: '压低黄橙', words: ['太黄', '偏黄', '发黄', '太橙', '橙色重', '肤色黄'] },
-    { key: 'tooCool', label: '拉回冷色', words: ['太蓝', '偏蓝', '发冷', '太冷', '冷了'] },
-    { key: 'tooGreen', label: '压住绿色', words: ['偏绿', '发绿', '荧光', '绿色脏', '脏'] },
-    { key: 'tooVivid', label: '降低饱和', words: ['太艳', '颜色太重', '饱和过头', '太浓', '艳了'] },
-    { key: 'tooFlat', label: '增加层次', words: ['太灰', '太平', '没层次', '寡淡', '不够饱和'] },
-    { key: 'tooHard', label: '柔化反差', words: ['太硬', '太数码', '对比太强', '反差太大'] },
-    { key: 'highlight', label: '保护高光', words: ['高光溢出', '高光炸', '天空白', '灯牌溢出', '过曝'] },
-    { key: 'shadow', label: '打开暗部', words: ['暗部太黑', '死黑', '堵黑', '脸部太暗', '阴影太重'] },
-    { key: 'notFilm', label: '加强胶片感', words: ['不够复古', '不像胶片', '不够胶片', '更复古', '想要颗粒'] },
-    { key: 'notClean', label: '提高清透度', words: ['不够清透', '太脏', '想要干净', '更干净'] },
-    { key: 'skin', label: '优先修正肤色', words: ['肤色不自然', '人脸不自然', '人像不自然', '肤色不好'] }
-  ];
-
-  var FILM_FALLBACKS = {
-    'REALA ACE': 'PROVIA',
-    'Nostalgic Neg.': 'ASTIA',
-    'Classic Neg.': 'Classic Chrome',
-    'ETERNA': 'Classic Chrome',
-    Velvia: 'REALA ACE'
-  };
-
   function clamp(value, minimum, maximum) {
     return Math.min(maximum, Math.max(minimum, value));
+  }
+
+  function intValue(value) {
+    return Math.round(value);
   }
 
   function formatSigned(value) {
@@ -203,13 +195,6 @@
       return '+' + value;
     }
     return String(value);
-  }
-
-  function formatEv(value) {
-    if (value === 0) {
-      return '0 EV';
-    }
-    return (value > 0 ? '+' : '') + value.toFixed(1) + ' EV';
   }
 
   function escapeHtml(value) {
@@ -227,16 +212,281 @@
   }
 
   function normalizeText(text) {
-    return String(text || '').toLowerCase().replace(/\s+/g, '');
+    return String(text || '')
+      .toLowerCase()
+      .replace(/\s+/g, '')
+      .replace(/[，。！？、；;,：:]/g, '');
   }
 
   function containsAny(text, words) {
-    for (var i = 0; i < words.length; i += 1) {
-      if (text.indexOf(words[i]) !== -1) {
+    for (var index = 0; index < words.length; index += 1) {
+      if (text.indexOf(words[index]) !== -1) {
         return true;
       }
     }
     return false;
+  }
+
+  function findPattern(text, patterns) {
+    for (var index = 0; index < patterns.length; index += 1) {
+      patterns[index].lastIndex = 0;
+      var match = patterns[index].exec(text);
+      if (match) {
+        return {
+          index: match.index,
+          text: match[0]
+        };
+      }
+    }
+    return null;
+  }
+
+  function degreeFor(text, index) {
+    var start = Math.max(0, index - 8);
+    var end = Math.min(text.length, index + 14);
+    var around = text.slice(start, end);
+    if (/特别|非常|很|太|明显|严重|过头/.test(around)) {
+      return 1.5;
+    }
+    if (/有点|稍微|一点点|一点|略微|略/.test(around)) {
+      return 0.5;
+    }
+    return 1;
+  }
+
+  function addIntent(result, key, label, patterns, skip) {
+    var hit = findPattern(result.normalized, patterns);
+    if (!hit || (skip && skip(result.normalized, hit.index))) {
+      return;
+    }
+    for (var index = 0; index < result.intents.length; index += 1) {
+      if (result.intents[index].key === key) {
+        result.intents[index].amount = Math.max(result.intents[index].amount, degreeFor(result.normalized, hit.index));
+        return;
+      }
+    }
+    result.intents.push({
+      key: key,
+      label: label,
+      amount: degreeFor(result.normalized, hit.index),
+      source: hit.text
+    });
+  }
+
+  function getPreferredSlot(text) {
+    var chinese = text.match(/第([一二三])套/);
+    if (chinese) {
+      return { 一: 0, 二: 1, 三: 2 }[chinese[1]];
+    }
+    var number = text.match(/第([123])套/);
+    if (number) {
+      return Number(number[1]) - 1;
+    }
+    var plan = text.match(/方案([abc])/);
+    if (plan) {
+      return { a: 0, b: 1, c: 2 }[plan[1]];
+    }
+    return null;
+  }
+
+  function parseFeedback(text) {
+    var normalized = normalizeText(text);
+    var result = {
+      raw: String(text || ''),
+      normalized: normalized,
+      intents: [],
+      preferredSlot: getPreferredSlot(normalized),
+      keepStyle: false,
+      keepColor: false,
+      preserveWarm: false,
+      preserveCool: false,
+      preserveSaturation: false
+    };
+
+    if (!normalized) {
+      result.canGenerate = false;
+      return result;
+    }
+
+    result.preserveWarm = containsAny(normalized, [
+      '不要变冷',
+      '不想变冷',
+      '不要更冷',
+      '保持暖',
+      '保留暖色',
+      '暖色保留'
+    ]);
+    result.preserveCool = containsAny(normalized, [
+      '不要变暖',
+      '不想变暖',
+      '不要更暖',
+      '保持冷',
+      '保留冷色',
+      '冷色保留'
+    ]);
+    result.preserveSaturation = containsAny(normalized, [
+      '不要降低饱和度',
+      '不想降低饱和度',
+      '不要降饱和',
+      '不想降饱和',
+      '饱和度保留'
+    ]);
+    result.keepColor = containsAny(normalized, [
+      '颜色保留',
+      '保留颜色',
+      '色彩保留',
+      '保留色彩'
+    ]);
+    result.keepStyle = result.preferredSlot !== null || containsAny(normalized, [
+      '方向不错',
+      '比较喜欢',
+      '很喜欢',
+      '保留这个感觉',
+      '保留这套',
+      '保留这个方向',
+      '感觉保留',
+      '只想让'
+    ]);
+
+    addIntent(result, 'tooWarm', '压低黄橙', [
+      /太黄/,
+      /偏黄/,
+      /发黄/,
+      /太橙/,
+      /橙色.{0,3}重/,
+      /肤色.{0,3}黄/,
+      /太暖/,
+      /偏暖/,
+      /暖.{0,2}过头/,
+      /有点暖/,
+      /稍微暖/
+    ]);
+    addIntent(result, 'tooCool', '拉回冷色', [
+      /太蓝/,
+      /偏蓝/,
+      /发蓝/,
+      /太冷/,
+      /偏冷/,
+      /发冷/,
+      /冷了/
+    ]);
+    addIntent(result, 'tooGreen', '清理绿色', [
+      /绿色.{0,3}脏/,
+      /绿.{0,2}脏/,
+      /偏绿/,
+      /发绿/,
+      /太绿/,
+      /荧光绿/
+    ]);
+    addIntent(result, 'skinRed', '降低肤色红感', [
+      /人脸.{0,3}红/,
+      /脸.{0,3}红/,
+      /肤色.{0,3}红/,
+      /人像.{0,3}红/,
+      /发红/
+    ]);
+    addIntent(result, 'tooVivid', '降低艳度', [
+      /太艳/,
+      /颜色.{0,3}重/,
+      /饱和度.{0,3}高/,
+      /太浓/,
+      /颜色.{0,3}浓/,
+      /艳了/
+    ]);
+    addIntent(result, 'saturationDown', '降低饱和度', [
+      /降低饱和/,
+      /降.{0,3}饱和/,
+      /少.{0,3}饱和/,
+      /饱和度.{0,4}低一点/,
+      /不那么艳/
+    ], function (value) {
+      return /不要|不想|不需要/.test(value.slice(Math.max(0, value.indexOf('饱和') - 5), value.indexOf('饱和') + 2));
+    });
+    addIntent(result, 'tooFlat', '增加影调层次', [
+      /太灰/,
+      /发灰/,
+      /太平/,
+      /没层次/,
+      /寡淡/,
+      /整体.{0,2}闷/,
+      /有点闷/,
+      /很闷/
+    ]);
+    addIntent(result, 'tooHard', '柔化反差', [
+      /太硬/,
+      /太数码/,
+      /数码感/,
+      /反差.{0,3}大/,
+      /反差.{0,2}硬/,
+      /过硬/
+    ]);
+    addIntent(result, 'highlight', '保护高光', [
+      /高光.{0,3}亮/,
+      /高光溢出/,
+      /高光炸/,
+      /天空白/,
+      /灯牌溢出/,
+      /过曝/,
+      /亮部.{0,3}亮/
+    ]);
+    addIntent(result, 'shadow', '打开暗部', [
+      /暗部.{0,3}(黑|暗|亮|打开)/,
+      /太暗/,
+      /死黑/,
+      /堵黑/,
+      /阴影.{0,3}重/,
+      /脸部.{0,3}暗/
+    ]);
+    addIntent(result, 'moreFilm', '加强胶片质感', [
+      /不够胶片/,
+      /更胶片/,
+      /不够复古/,
+      /更复古/,
+      /想要颗粒/,
+      /颗粒感/
+    ]);
+    addIntent(result, 'moreClean', '提高清透度', [
+      /不够清透/,
+      /更清透/,
+      /想要干净/,
+      /更干净/,
+      /更通透/,
+      /通透一点/,
+      /通透/
+    ]);
+    addIntent(result, 'moreNatural', '回到自然', [
+      /想更自然/,
+      /更自然/,
+      /自然一点/,
+      /自然耐看/
+    ]);
+    addIntent(result, 'moreAtmosphere', '增加氛围', [
+      /想更有氛围/,
+      /更有氛围/,
+      /氛围感/
+    ]);
+    addIntent(result, 'moreCinema', '加强电影感', [
+      /更电影/,
+      /想更电影/,
+      /电影感.{0,3}强/
+    ]);
+    addIntent(result, 'moreSoft', '变得柔和', [
+      /更柔和/,
+      /柔和一点/,
+      /不够柔和/,
+      /柔一点/
+    ]);
+    addIntent(result, 'moreRich', '增加浓郁度', [
+      /更浓郁/,
+      /浓郁一点/,
+      /想更浓郁/,
+      /颜色更重/
+    ]);
+
+    result.canGenerate = result.intents.length > 0;
+    result.hasPreservation = result.keepStyle || result.keepColor ||
+      result.preserveWarm || result.preserveCool || result.preserveSaturation;
+    return result;
   }
 
   function uniquePush(list, value) {
@@ -245,19 +495,149 @@
     }
   }
 
-  function getFeedbackSignals(text) {
-    var normalized = normalizeText(text);
-    var signals = [];
-    FEEDBACK_RULES.forEach(function (rule) {
-      if (containsAny(normalized, rule.words)) {
-        signals.push(rule);
+  function stepFor(amount) {
+    return amount >= 1.4 ? 2 : 1;
+  }
+
+  function buildModifiers(parsed) {
+    var modifiers = {
+      wbR: 0,
+      wbB: 0,
+      color: 0,
+      highlight: 0,
+      shadow: 0,
+      sharpness: 0,
+      clarity: 0,
+      monoWarmCool: 0,
+      monoGreenMagenta: 0,
+      forceDR: false,
+      forceFilmGrain: false,
+      forceCleanGrain: false,
+      preferFilms: null,
+      changes: []
+    };
+
+    parsed.intents.forEach(function (intent) {
+      var step = stepFor(intent.amount);
+      if (intent.key === 'tooWarm') {
+        if (!parsed.preserveWarm) {
+          modifiers.wbB += step;
+          modifiers.monoWarmCool += step;
+        }
+        uniquePush(modifiers.changes, '压低黄橙，冷暖回到更干净的方向');
+      }
+      if (intent.key === 'tooCool') {
+        if (!parsed.preserveCool) {
+          modifiers.wbB -= step;
+          modifiers.monoWarmCool -= step;
+        }
+        uniquePush(modifiers.changes, '减少冷蓝感，保留现场层次');
+      }
+      if (intent.key === 'tooGreen') {
+        modifiers.wbR += step;
+        modifiers.monoGreenMagenta += step;
+        modifiers.color -= 1;
+        uniquePush(modifiers.changes, '把绿色往更干净的洋红方向校正');
+      }
+      if (intent.key === 'skinRed') {
+        modifiers.wbR -= step;
+        if (!parsed.keepColor) {
+          modifiers.color -= 1;
+        }
+        uniquePush(modifiers.changes, '降低肤色红感，避免脸部抢色');
+      }
+      if (intent.key === 'tooVivid') {
+        if (!parsed.preserveSaturation) {
+          modifiers.color -= step;
+        }
+        uniquePush(modifiers.changes, '降低过艳和过重的色彩');
+      }
+      if (intent.key === 'saturationDown') {
+        if (!parsed.preserveSaturation) {
+          modifiers.color -= step;
+        }
+        uniquePush(modifiers.changes, '整体饱和度下调一档');
+      }
+      if (intent.key === 'tooFlat') {
+        modifiers.highlight += 1;
+        modifiers.shadow += 1;
+        modifiers.clarity += 1;
+        if (!parsed.preserveSaturation) {
+          modifiers.color += 1;
+        }
+        uniquePush(modifiers.changes, '增加影调层次和局部清晰度');
+      }
+      if (intent.key === 'tooHard') {
+        modifiers.highlight -= 1;
+        modifiers.shadow -= 1;
+        modifiers.sharpness -= 1;
+        modifiers.clarity -= 1;
+        modifiers.preferFilms = ['ASTIA', 'ETERNA', 'PRO Neg. Std'];
+        uniquePush(modifiers.changes, '柔化高光、暗部、锐度和清晰度');
+      }
+      if (intent.key === 'highlight') {
+        modifiers.highlight -= 2;
+        modifiers.forceDR = true;
+        uniquePush(modifiers.changes, '降低高光并优先保护亮部');
+      }
+      if (intent.key === 'shadow') {
+        modifiers.shadow += 2;
+        modifiers.clarity += 1;
+        uniquePush(modifiers.changes, '打开暗部，减少死黑和堵塞');
+      }
+      if (intent.key === 'moreFilm') {
+        modifiers.forceFilmGrain = true;
+        modifiers.clarity -= 1;
+        modifiers.sharpness -= 1;
+        modifiers.preferFilms = ['Classic Neg.', 'Classic Chrome', 'Nostalgic Neg.'];
+        uniquePush(modifiers.changes, '加入颗粒和更明确的胶片取向');
+      }
+      if (intent.key === 'moreClean') {
+        modifiers.forceCleanGrain = true;
+        modifiers.clarity += 2;
+        modifiers.sharpness += 1;
+        modifiers.preferFilms = ['REALA ACE', 'PROVIA', 'ASTIA'];
+        uniquePush(modifiers.changes, '关闭颗粒并提高通透和干净感');
+      }
+      if (intent.key === 'moreNatural') {
+        if (!parsed.keepColor && !parsed.preserveSaturation) {
+          modifiers.color -= 1;
+        }
+        modifiers.preferFilms = ['PROVIA', 'REALA ACE', 'ASTIA'];
+        uniquePush(modifiers.changes, '把色彩拉回自然耐看');
+      }
+      if (intent.key === 'moreAtmosphere') {
+        modifiers.clarity -= 1;
+        modifiers.forceFilmGrain = true;
+        modifiers.preferFilms = ['Classic Chrome', 'ETERNA', 'Classic Neg.'];
+        uniquePush(modifiers.changes, '增加氛围和画面质感');
+      }
+      if (intent.key === 'moreCinema') {
+        modifiers.clarity -= 1;
+        modifiers.color -= 1;
+        modifiers.preferFilms = ['ETERNA', 'Classic Chrome', 'Classic Neg.'];
+        uniquePush(modifiers.changes, '往低饱和电影方向靠近');
+      }
+      if (intent.key === 'moreSoft') {
+        modifiers.highlight -= 1;
+        modifiers.shadow -= 1;
+        modifiers.sharpness -= 1;
+        modifiers.clarity -= 1;
+        modifiers.preferFilms = ['ASTIA', 'ETERNA', 'PRO Neg. Std'];
+        uniquePush(modifiers.changes, '降低过硬反差，保留柔和过渡');
+      }
+      if (intent.key === 'moreRich') {
+        modifiers.color += 2;
+        modifiers.preferFilms = ['Velvia', 'REALA ACE', 'Classic Chrome'];
+        uniquePush(modifiers.changes, '强化饱和度和色彩存在感');
       }
     });
-    return signals;
+
+    return modifiers;
   }
 
   function collectImageMetrics(image) {
-    var maxSide = 96;
+    var maxSide = 128;
     var sourceWidth = image.naturalWidth || image.width;
     var sourceHeight = image.naturalHeight || image.height;
     var scale = Math.min(1, maxSide / Math.max(sourceWidth, sourceHeight));
@@ -283,27 +663,72 @@
     var sumSaturation = 0;
     var highlights = 0;
     var shadows = 0;
+    var warmPixels = 0;
+    var coolPixels = 0;
+    var bluePixels = 0;
+    var greenPixels = 0;
+    var regions = [];
+    var regionRows = 3;
+    var regionColumns = 3;
+    var regionIndex;
 
-    for (var index = 0; index < pixels.length; index += 4) {
-      var alpha = pixels[index + 3] / 255;
-      var red = pixels[index] * alpha + 255 * (1 - alpha);
-      var green = pixels[index + 1] * alpha + 255 * (1 - alpha);
-      var blue = pixels[index + 2] * alpha + 255 * (1 - alpha);
-      var pixelMax = Math.max(red, green, blue);
-      var pixelMin = Math.min(red, green, blue);
-      var luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+    for (regionIndex = 0; regionIndex < regionRows * regionColumns; regionIndex += 1) {
+      regions.push({
+        count: 0,
+        luma: 0,
+        saturation: 0,
+        warmBias: 0,
+        greenBias: 0
+      });
+    }
 
-      sumR += red;
-      sumG += green;
-      sumB += blue;
-      sumLuminance += luminance;
-      sumLuminanceSquared += luminance * luminance;
-      sumSaturation += (pixelMax - pixelMin) / 255;
-      if (luminance >= 230) {
-        highlights += 1;
-      }
-      if (luminance <= 38) {
-        shadows += 1;
+    for (var y = 0; y < height; y += 1) {
+      for (var x = 0; x < width; x += 1) {
+        var pixelIndex = (y * width + x) * 4;
+        var alpha = pixels[pixelIndex + 3] / 255;
+        var red = pixels[pixelIndex] * alpha + 255 * (1 - alpha);
+        var green = pixels[pixelIndex + 1] * alpha + 255 * (1 - alpha);
+        var blue = pixels[pixelIndex + 2] * alpha + 255 * (1 - alpha);
+        var pixelMax = Math.max(red, green, blue);
+        var pixelMin = Math.min(red, green, blue);
+        var luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+        var saturation = pixelMax === 0 ? 0 : (pixelMax - pixelMin) / pixelMax;
+        var warmBias = red - blue;
+        var greenBias = green - (red + blue) / 2;
+        var row = Math.min(regionRows - 1, Math.floor(y / height * regionRows));
+        var column = Math.min(regionColumns - 1, Math.floor(x / width * regionColumns));
+        var region = regions[row * regionColumns + column];
+
+        sumR += red;
+        sumG += green;
+        sumB += blue;
+        sumLuminance += luminance;
+        sumLuminanceSquared += luminance * luminance;
+        sumSaturation += saturation;
+        region.count += 1;
+        region.luma += luminance;
+        region.saturation += saturation;
+        region.warmBias += warmBias;
+        region.greenBias += greenBias;
+
+        if (luminance >= 230) {
+          highlights += 1;
+        }
+        if (luminance <= 42) {
+          shadows += 1;
+        }
+        if (warmBias >= 18) {
+          warmPixels += 1;
+        }
+        if (warmBias <= -18) {
+          coolPixels += 1;
+        }
+        if (blue > red + 16 && blue > green + 8) {
+          bluePixels += 1;
+        }
+        if (green > red + 8 && green > blue + 8) {
+          greenPixels += 1;
+        }
       }
     }
 
@@ -312,6 +737,17 @@
     var averageR = sumR / count;
     var averageG = sumG / count;
     var averageB = sumB / count;
+    var regionalStats = regions.map(function (region) {
+      return {
+        luma: region.count ? region.luma / region.count : 0,
+        saturation: region.count ? region.saturation / region.count : 0,
+        warmBias: region.count ? region.warmBias / region.count : 0,
+        greenBias: region.count ? region.greenBias / region.count : 0
+      };
+    });
+    var lumaValues = regionalStats.map(function (region) { return region.luma; });
+    var saturationValues = regionalStats.map(function (region) { return region.saturation; });
+    var warmValues = regionalStats.map(function (region) { return region.warmBias; });
 
     return {
       averageLuminance: averageLuminance,
@@ -322,45 +758,56 @@
       saturation: sumSaturation / count,
       highlightRatio: highlights / count,
       shadowRatio: shadows / count,
+      warmRatio: warmPixels / count,
+      coolRatio: coolPixels / count,
+      blueRatio: bluePixels / count,
+      greenRatio: greenPixels / count,
       warmBias: averageR - averageB,
       greenBias: averageG - (averageR + averageB) / 2,
       magentaBias: (averageR + averageB) / 2 - averageG,
+      localBrightnessRange: Math.max.apply(null, lumaValues) - Math.min.apply(null, lumaValues),
+      localSaturationRange: Math.max.apply(null, saturationValues) - Math.min.apply(null, saturationValues),
+      localColorRange: Math.max.apply(null, warmValues) - Math.min.apply(null, warmValues),
+      regions: regionalStats,
       sampleWidth: width,
       sampleHeight: height
     };
   }
 
-  function classifyScene(metrics, subject) {
+  function classifyScene(metrics, subjectKey) {
     var lightLabel;
     var contrastLabel;
     var colorLabel;
+    var temperatureLabel;
     var risks = [];
 
-    if (metrics.averageLuminance < 75) {
+    if (metrics.averageLuminance < 72) {
       lightLabel = '暗部为主';
-    } else if (metrics.averageLuminance > 190 && metrics.highlightRatio > 0.04) {
+    } else if (metrics.highlightRatio > 0.05 && metrics.averageLuminance > 170) {
       lightLabel = '明亮、高光明显';
-    } else if (metrics.contrast < 36) {
+    } else if (metrics.contrast < 31) {
       lightLabel = '柔和散射光倾向';
-    } else if (metrics.contrast > 64) {
+    } else if (metrics.averageLuminance < 112 && metrics.contrast > 48) {
+      lightLabel = '偏暗且有方向性光线';
+    } else if (metrics.contrast > 66) {
       lightLabel = '方向性较强光线倾向';
     } else {
       lightLabel = '中等环境光';
     }
 
-    if (metrics.contrast > 64 || (metrics.highlightRatio > 0.07 && metrics.shadowRatio > 0.12)) {
+    if (metrics.contrast > 66 || (metrics.highlightRatio > 0.06 && metrics.shadowRatio > 0.12)) {
       contrastLabel = '高反差';
-    } else if (metrics.contrast < 36) {
+    } else if (metrics.contrast < 31) {
       contrastLabel = '低反差';
     } else {
       contrastLabel = '中反差';
     }
 
-    if (metrics.greenBias > 10 && metrics.greenBias > Math.abs(metrics.warmBias) * 0.45) {
+    if (metrics.greenRatio > 0.08 || (metrics.greenBias > 10 && metrics.greenBias > Math.abs(metrics.warmBias) * 0.45)) {
       colorLabel = '偏绿';
-    } else if (metrics.warmBias > 18) {
+    } else if (metrics.warmRatio > 0.12 || metrics.warmBias > 18) {
       colorLabel = '偏暖';
-    } else if (metrics.warmBias < -18) {
+    } else if (metrics.coolRatio > 0.12 || metrics.warmBias < -18) {
       colorLabel = '偏冷';
     } else if (metrics.magentaBias > 14) {
       colorLabel = '偏洋红';
@@ -368,199 +815,243 @@
       colorLabel = '接近中性';
     }
 
-    if (metrics.highlightRatio > 0.06) {
+    if (metrics.warmBias > 12) {
+      temperatureLabel = '暖';
+    } else if (metrics.warmBias < -12) {
+      temperatureLabel = '冷';
+    } else {
+      temperatureLabel = '中性';
+    }
+
+    if (metrics.highlightRatio > 0.05) {
       risks.push('高光容易溢出');
     }
-    if (metrics.shadowRatio > 0.18) {
+    if (metrics.shadowRatio > 0.17) {
       risks.push('暗部可能堵塞');
     }
     if (metrics.saturation > 0.48) {
       risks.push('环境色可能偏重');
     }
-    if (colorLabel === '偏暖') {
-      risks.push('暖色可能令肤色偏黄');
+    if (metrics.greenRatio > 0.08) {
+      risks.push('绿色占比偏高');
     }
-    if (colorLabel === '偏绿') {
-      risks.push('绿色环境可能发脏');
+    if (metrics.blueRatio > 0.12) {
+      risks.push('蓝色占比偏高');
+    }
+    if (metrics.localBrightnessRange > 55) {
+      risks.push('局部明暗差较大');
+    }
+    if (metrics.localColorRange > 24) {
+      risks.push('不同区域色彩差异较大');
     }
     if (!risks.length) {
       risks.push('暂无明显单项风险');
     }
 
     return {
+      subjectKey: subjectKey,
+      subjectLabel: SUBJECT_LABELS[subjectKey] || SUBJECT_LABELS.other,
       lightLabel: lightLabel,
       contrastLabel: contrastLabel,
       colorLabel: colorLabel,
+      temperatureLabel: temperatureLabel,
       risks: risks,
-      subject: subject || '未填写，主要依据照片光线判断',
-      confidence: '中（本地像素估计）',
+      confidence: '中（本地特征估计）',
       averageLuminance: metrics.averageLuminance,
       contrast: metrics.contrast,
+      averageR: metrics.averageR,
+      averageG: metrics.averageG,
+      averageB: metrics.averageB,
       saturation: metrics.saturation,
       highlightRatio: metrics.highlightRatio,
       shadowRatio: metrics.shadowRatio,
+      warmRatio: metrics.warmRatio,
+      coolRatio: metrics.coolRatio,
+      blueRatio: metrics.blueRatio,
+      greenRatio: metrics.greenRatio,
       warmBias: metrics.warmBias,
       greenBias: metrics.greenBias,
-      magentaBias: metrics.magentaBias
+      localBrightnessRange: metrics.localBrightnessRange,
+      localSaturationRange: metrics.localSaturationRange,
+      localColorRange: metrics.localColorRange,
+      sampleWidth: metrics.sampleWidth,
+      sampleHeight: metrics.sampleHeight
     };
   }
 
-  function cloneProfile(profile) {
-    var cloned = {};
-    Object.keys(profile).forEach(function (key) {
-      cloned[key] = Array.isArray(profile[key]) ? profile[key].slice() : profile[key];
-    });
-    return cloned;
+  function resolveProfileKey(lookKey, subjectKey, analysis) {
+    if (lookKey !== 'auto') {
+      return lookKey;
+    }
+    if (subjectKey === 'night' || analysis.averageLuminance < 66) {
+      return 'cinema';
+    }
+    if ((subjectKey === 'landscape' || subjectKey === 'architecture') && analysis.saturation > 0.42) {
+      return 'vivid';
+    }
+    if (subjectKey === 'portrait' && analysis.warmRatio > 0.16) {
+      return 'warm';
+    }
+    if (analysis.contrast < 31) {
+      return 'clean';
+    }
+    return 'natural';
   }
 
-  function getProfile(lookKey, analysis) {
-    var base = STYLE_PROFILES[lookKey] || STYLE_PROFILES.auto;
-    var profile = cloneProfile(base);
+  function axisValue(value, positiveLabel, negativeLabel) {
+    if (value === 0) {
+      return '0';
+    }
+    return (value > 0 ? positiveLabel : negativeLabel) + ' ' + Math.abs(value);
+  }
 
-    if (lookKey === 'auto') {
-      if (analysis.highlightRatio > 0.07 || analysis.contrastLabel === '高反差') {
-        profile.films = ['REALA ACE', 'Classic Chrome', 'ETERNA'];
-        profile.names = ['高光保留', '氛围平衡', '反差强化'];
-      } else if (analysis.averageLuminance < 78) {
-        profile.films = ['ETERNA', 'Classic Chrome', 'Classic Neg.'];
-        profile.names = ['暗部保留', '夜色平衡', '夜景风格'];
-      } else if (analysis.colorLabel === '偏暖') {
-        profile.films = ['ASTIA', 'PROVIA', 'Classic Chrome'];
-        profile.names = ['暖光保肤', '暖色平衡', '暖调氛围'];
+  function monoColorText(warmCool, greenMagenta) {
+    return 'WARM ↔ COOL：' + axisValue(warmCool, 'COOL +', 'WARM -') +
+      '；G ↔ M：' + axisValue(greenMagenta, 'M +', 'G -');
+  }
+
+  function grainRank(grain) {
+    if (grain === '强') {
+      return 2;
+    }
+    if (grain === '弱') {
+      return 1;
+    }
+    return 0;
+  }
+
+  function selectFilms(profile, modifiers, round, previousOutput, parsed) {
+    var source = (modifiers.preferFilms || profile.films).slice();
+    var anchorFilm = null;
+    var preserveAnchor = parsed.keepStyle || parsed.preserveWarm || parsed.preserveCool || parsed.keepColor;
+    var anchorIndex = parsed.preferredSlot === null ? 1 : parsed.preferredSlot;
+    if (previousOutput && preserveAnchor &&
+        previousOutput.recipes[anchorIndex] &&
+        previousOutput.recipes[anchorIndex].kind === profile.type) {
+      anchorFilm = previousOutput.recipes[anchorIndex].filmSimulation;
+      if (source.indexOf(anchorFilm) === -1) {
+        source.unshift(anchorFilm);
       }
     }
-
-    return profile;
-  }
-
-  function buildModifiers(signals) {
-    var modifiers = {
-      wbR: 0,
-      wbB: 0,
-      color: 0,
-      sharpness: 0,
-      clarity: 0,
-      highlight: 0,
-      shadow: 0,
-      exposure: 0,
-      forceDR: false,
-      forceCleanGrain: false,
-      forceFilmGrain: false,
-      preferFilms: null,
-      changes: []
-    };
-
-    signals.forEach(function (signal) {
-      if (signal.key === 'tooWarm') {
-        modifiers.wbB += 2;
-        modifiers.color -= 1;
-        modifiers.preferFilms = ['PROVIA', 'ETERNA', 'ASTIA'];
-        uniquePush(modifiers.changes, '白平衡向蓝色修正');
-        uniquePush(modifiers.changes, '色彩降低 1');
-      }
-      if (signal.key === 'tooCool') {
-        modifiers.wbB -= 2;
-        modifiers.preferFilms = ['ASTIA', 'PROVIA', 'REALA ACE'];
-        uniquePush(modifiers.changes, '白平衡向暖色修正');
-      }
-      if (signal.key === 'tooGreen') {
-        modifiers.wbR += 2;
-        modifiers.color -= 1;
-        modifiers.preferFilms = ['REALA ACE', 'Classic Chrome', 'ASTIA'];
-        uniquePush(modifiers.changes, '白平衡向洋红修正');
-        uniquePush(modifiers.changes, '降低绿色环境的饱和感');
-      }
-      if (signal.key === 'tooVivid') {
-        modifiers.color -= 2;
-        modifiers.forceCleanGrain = true;
-        modifiers.preferFilms = ['ETERNA', 'Classic Chrome', 'PROVIA'];
-        uniquePush(modifiers.changes, '色彩降低 2');
-        uniquePush(modifiers.changes, '关闭或减弱特殊色彩效果');
-      }
-      if (signal.key === 'tooFlat') {
-        modifiers.color += 1;
-        modifiers.shadow += 1;
-        modifiers.highlight += 1;
-        modifiers.preferFilms = ['REALA ACE', 'Classic Chrome', 'PROVIA'];
-        uniquePush(modifiers.changes, '增加色彩和反差层次');
-      }
-      if (signal.key === 'tooHard') {
-        modifiers.highlight -= 1;
-        modifiers.shadow -= 1;
-        modifiers.sharpness -= 1;
-        modifiers.clarity -= 1;
-        modifiers.preferFilms = ['ASTIA', 'ETERNA', 'PRO Neg. Std'];
-        uniquePush(modifiers.changes, '高光、阴影和清晰度向柔和方向调整');
-      }
-      if (signal.key === 'highlight') {
-        modifiers.highlight -= 1;
-        modifiers.exposure -= 0.3;
-        modifiers.forceDR = true;
-        uniquePush(modifiers.changes, '降低曝光补偿和高光');
-        uniquePush(modifiers.changes, '必要时提高动态范围');
-      }
-      if (signal.key === 'shadow') {
-        modifiers.shadow -= 1;
-        modifiers.exposure += 0.3;
-        uniquePush(modifiers.changes, '打开阴影并略提曝光');
-      }
-      if (signal.key === 'notFilm') {
-        modifiers.forceFilmGrain = true;
-        modifiers.clarity -= 1;
-        modifiers.sharpness -= 1;
-        modifiers.preferFilms = ['Classic Neg.', 'Classic Chrome', 'Nostalgic Neg.'];
-        uniquePush(modifiers.changes, '加入可控颗粒和更低锐度');
-      }
-      if (signal.key === 'notClean') {
-        modifiers.forceCleanGrain = true;
-        modifiers.clarity += 1;
-        modifiers.sharpness += 1;
-        modifiers.preferFilms = ['REALA ACE', 'PROVIA', 'ASTIA'];
-        uniquePush(modifiers.changes, '关闭颗粒并提高画面清晰感');
-      }
-      if (signal.key === 'skin') {
-        modifiers.color -= 1;
-        modifiers.sharpness -= 1;
-        modifiers.preferFilms = ['ASTIA', 'PRO Neg. Std', 'PROVIA'];
-        uniquePush(modifiers.changes, '肤色优先，降低色彩和锐度');
-      }
-    });
-
-    return modifiers;
-  }
-
-  function selectFilms(profile, modifiers, round) {
-    var source = profile.films.slice();
-    if (modifiers.preferFilms && profile.type !== 'bw') {
-      source = modifiers.preferFilms.slice();
+    if (profile.type === 'bw') {
+      source = profile.films.slice();
     }
-    var shift = profile.type === 'bw' ? 0 : (round - 1) % source.length;
+
+    var offset = source.length > 1 ? (round - 1) % source.length : 0;
     var films = [];
+    for (var slot = 0; slot < 3; slot += 1) {
+      films.push(source[(slot + offset) % source.length]);
+    }
+    if (anchorFilm) {
+      films[1] = anchorFilm;
+    }
 
-    for (var index = 0; index < 3; index += 1) {
-      films.push(source[(index + shift) % source.length]);
+    for (var index = 0; index < films.length; index += 1) {
+      for (var next = 0; next < source.length; next += 1) {
+        if (films.indexOf(films[index]) === index) {
+          break;
+        }
+        var candidate = source[(next + offset + index) % source.length];
+        if (films.indexOf(candidate) === -1) {
+          films[index] = candidate;
+          break;
+        }
+      }
     }
     return films;
   }
 
-  function getFilmFallback(film, isBw) {
-    if (isBw) {
-      return '请以机内可用的 ACROS 或黑白模拟为准，不把彩色模拟冒充黑白等效替代';
+  function buildRecipeName(recipe, subjectKey) {
+    var filmName = {
+      PROVIA: '自然基准',
+      'REALA ACE': '清透色彩',
+      ASTIA: '柔和人像',
+      'Classic Chrome': '克制胶片',
+      'Classic Neg.': '复古街拍',
+      'Nostalgic Neg.': '暖调复古',
+      ETERNA: '柔和电影',
+      Velvia: '浓郁风景',
+      'PRO Neg. Std': '人像自然',
+      ACROS: '黑白层次',
+      'ACROS+Ye FILTER': '黑白晴光',
+      'ACROS+R FILTER': '黑白高光',
+      'ACROS+G FILTER': '黑白细节'
+    }[recipe.filmSimulation] || recipe.filmSimulation;
+    var temperature;
+    var color;
+    var contrast;
+    var texture;
+    var toneSummary;
+    var subjectSuffix = '';
+
+    if (recipe.kind === 'bw') {
+      temperature = recipe.monoWarmCool >= 2 ? '偏冷' : recipe.monoWarmCool <= -2 ? '偏暖' : '中性';
+      color = recipe.monoGreenMagenta >= 2 ? '偏洋红' : recipe.monoGreenMagenta <= -2 ? '偏绿' : '中性';
+      toneSummary = temperature + (color === '中性' ? '' : color);
+    } else {
+      temperature = recipe.wbB >= 2 ? '冷调' : recipe.wbB <= -2 ? '暖调' : recipe.wbR >= 2 ? '红润' : recipe.wbR <= -2 ? '青绿' : '中性';
+      color = recipe.color <= -2 ? '低饱和' : recipe.color >= 2 ? '浓郁' : recipe.color === -1 ? '克制' : recipe.color === 1 ? '饱满' : '自然';
+      toneSummary = temperature + color;
     }
-    return FILM_FALLBACKS[film] || 'PROVIA';
+
+    if (recipe.highlight <= -1 && recipe.shadow <= -1) {
+      contrast = '柔和反差';
+    } else if (recipe.highlight >= 1 && recipe.shadow >= 1) {
+      contrast = '高反差层次';
+    } else if (recipe.shadow >= 1) {
+      contrast = '暗部通透';
+    } else {
+      contrast = '平衡影调';
+    }
+
+    texture = recipe.grain === '强' ? '强颗粒' : recipe.grain === '弱' ? '细颗粒' : '颗粒关闭';
+    if (recipe.kind === 'color' && recipe.clarity >= 2 && recipe.grain === '关闭') {
+      contrast = '清透影调';
+    }
+    if (subjectKey === 'portrait' && recipe.kind === 'color' && recipe.filmSimulation === 'ASTIA') {
+      subjectSuffix = '人像';
+    } else if (subjectKey === 'landscape' && recipe.filmSimulation === 'Velvia') {
+      subjectSuffix = '风景';
+    }
+
+    var parts = [filmName];
+    if (subjectSuffix && filmName.indexOf(subjectSuffix) === -1) {
+      parts.push(subjectSuffix);
+    }
+    parts.push(toneSummary);
+    parts.push(contrast);
+    parts.push(texture);
+    return parts.join(' · ');
   }
 
-  function buildCompatibilityNote(film, isBw, cameraModel) {
-    if (isBw) {
-      if (cameraModel) {
-        return '机型记录：' + cameraModel + '。本地工具未联网读取菜单；若机内没有该 ACROS 选项，请按菜单选择可用的黑白模拟。';
-      }
-      return '未填写机型；ACROS、颗粒和黑白调色请以机身菜单是否存在为准。';
+  function buildRiskNote(recipe, analysis) {
+    var notes = [];
+    if (recipe.highlight <= -1) {
+      notes.push('亮部更保守');
     }
-    if (cameraModel) {
-      return '机型记录：' + cameraModel + '。若菜单没有 ' + film + '，使用接近替代：' + getFilmFallback(film, false) + '；清晰度、颗粒大小和特殊效果按菜单是否存在设置。';
+    if (recipe.shadow >= 1) {
+      notes.push('暗部更开放');
     }
-    return '未填写机型；若菜单没有该胶片模拟，使用接近替代：' + getFilmFallback(film, false) + '。特殊参数按机身菜单是否存在设置。';
+    if (recipe.grain === '强') {
+      notes.push('颗粒存在感较强');
+    }
+    if (analysis.localBrightnessRange > 55 && recipe.dynamicRange === 'DR100') {
+      notes.push('局部反差大时需留意亮部');
+    }
+    if (!notes.length) {
+      notes.push('建议先拍一张确认色彩和影调');
+    }
+    return notes.join('；') + '。';
+  }
+
+  function getExposureAdvice(analysis, recipe, subjectKey) {
+    if (analysis.highlightRatio > 0.05 || (analysis.contrastLabel === '高反差' && recipe.highlight <= -1)) {
+      return '建议稍微欠曝一点，优先保护天空和高光。';
+    }
+    if (analysis.averageLuminance < 72 || (subjectKey === 'portrait' && analysis.shadowRatio > 0.15)) {
+      return '建议稍微过曝一点，让人物肤色和阴影更通透。';
+    }
+    return '正常曝光。';
   }
 
   function buildQuickLine(recipe) {
@@ -569,18 +1060,16 @@
       parts = [
         '【' + recipe.name + '】',
         '胶片模拟：' + recipe.filmSimulation,
-        '黑白滤镜：' + recipe.bwFilter,
         '动态范围：' + recipe.dynamicRange,
         '动态范围优先：关闭',
         '高光：' + recipe.highlight,
         '阴影：' + recipe.shadow,
         '锐度：' + recipe.sharpness,
         '高 ISO 降噪：' + recipe.noiseReduction,
-        '清晰度：' + recipe.clarity + '（机型支持时）',
+        '清晰度：' + recipe.clarity,
         '颗粒效果：' + recipe.grain,
-        '颗粒大小：' + recipe.grainSize + '（机型支持时）',
-        '黑白调色：' + recipe.bwTone + '（机型支持时）',
-        '曝光补偿：' + recipe.exposure,
+        '颗粒大小：' + recipe.grainSize,
+        'MONOCHROMATIC COLOR：' + recipe.monoColor,
         'ISO：' + recipe.iso
       ];
     } else {
@@ -596,72 +1085,90 @@
         '色彩：' + recipe.color,
         '锐度：' + recipe.sharpness,
         '高 ISO 降噪：' + recipe.noiseReduction,
-        '清晰度：' + recipe.clarity + '（机型支持时）',
+        '清晰度：' + recipe.clarity,
         '颗粒效果：' + recipe.grain,
-        '颗粒大小：' + recipe.grainSize + '（机型支持时）',
-        '色彩效果：' + recipe.colorChrome + '（机型支持时）',
-        '彩色FX蓝色：' + recipe.fxBlue + '（机型支持时）',
-        '曝光补偿：' + recipe.exposure,
+        '颗粒大小：' + recipe.grainSize,
+        '色彩效果：' + recipe.colorChrome,
+        '彩色FX蓝色：' + recipe.fxBlue,
         'ISO：' + recipe.iso
       ];
     }
     return parts.join('；') + '。';
   }
 
-  function buildRecipe(slot, film, analysis, profile, modifiers, round, feedbackSummary, cameraModel) {
+  function buildRecipe(slot, film, analysis, profile, modifiers, round, parsed, previousRecipe, subjectKey) {
     var isBw = profile.type === 'bw';
-    var highContrast = analysis.contrastLabel === '高反差' || analysis.highlightRatio > 0.07;
+    var highContrast = analysis.contrastLabel === '高反差' || analysis.highlightRatio > 0.06;
     var lowContrast = analysis.contrastLabel === '低反差';
     var darkScene = analysis.averageLuminance < 80;
-    var highlightRisk = analysis.highlightRatio > 0.06;
-    var shadowRisk = analysis.shadowRatio > 0.18;
+    var highlightRisk = analysis.highlightRatio > 0.05;
+    var shadowRisk = analysis.shadowRatio > 0.17;
     var slotDelta = [-1, 0, 1][slot];
-    var highlight = highContrast || highlightRisk ? -2 + slot : lowContrast ? -1 + slot : -1 + slot;
-    var shadow = darkScene || shadowRisk ? -2 + slot : lowContrast ? slot : -1 + slot;
-    var dynamicRange = 'DR100';
-
-    if (highlightRisk || highContrast || modifiers.forceDR) {
-      dynamicRange = slot === 2 ? 'DR400' : 'DR200';
-    }
-    if (darkScene && !highlightRisk && !modifiers.forceDR) {
-      dynamicRange = 'DR100';
-    }
-
+    var useAnchor = Boolean(previousRecipe && slot === 1 &&
+      (parsed.keepStyle || parsed.preserveWarm || parsed.preserveCool || parsed.keepColor) &&
+      previousRecipe.kind === profile.type);
+    var highlight = highContrast || highlightRisk ? -2 + slot : lowContrast ? -1 + slot : slotDelta;
+    var shadow = darkScene || shadowRisk ? -2 + slot : lowContrast ? slotDelta : slotDelta;
+    var dynamicRange = highlightRisk || highContrast || modifiers.forceDR ? (slot === 2 ? 'DR400' : 'DR200') : 'DR100';
     var wbR = 0;
     var wbB = 0;
-    var counterBalance = 2 - slot;
+    var color;
+    var sharpness;
+    var clarity;
+    var grain;
+    var colorChrome;
+    var fxBlue;
+    var monoWarmCool;
+    var monoGreenMagenta;
+
     if (analysis.colorLabel === '偏暖') {
-      wbB += counterBalance;
+      wbB += 1 + (2 - slot);
     }
     if (analysis.colorLabel === '偏冷') {
-      wbB -= counterBalance;
+      wbB -= 1 + (2 - slot);
     }
     if (analysis.colorLabel === '偏绿') {
-      wbR += counterBalance;
+      wbR += 1 + (2 - slot);
     }
     if (analysis.colorLabel === '偏洋红') {
-      wbR -= counterBalance;
+      wbR -= 1 + (2 - slot);
     }
     if (profile.key === 'warm') {
       wbB -= slot === 2 ? 2 : 1;
     }
 
-    wbR = clamp(wbR + modifiers.wbR, -9, 9);
-    wbB = clamp(wbB + modifiers.wbB, -9, 9);
-    highlight = clamp(highlight + modifiers.highlight, -2, 4);
-    shadow = clamp(shadow + modifiers.shadow, -2, 4);
+    color = profile.colorBase + (analysis.saturation > 0.48 ? -1 : 0) + slotDelta;
+    sharpness = profile.sharpBase + (darkScene ? -1 : 0) + slotDelta;
+    clarity = profile.clarityBase + slotDelta;
+    grain = profile.grainModes[slot];
+    colorChrome = profile.chromeModes[slot];
+    fxBlue = profile.fxModes[slot];
+    monoWarmCool = slot === 0 ? 0 : slot === 1 ? -1 : 1;
+    monoGreenMagenta = slot === 0 ? 0 : slot === 1 ? 1 : -1;
 
-    var color = clamp(
-      profile.colorBase + (analysis.saturation > 0.48 ? -1 : 0) + slotDelta + modifiers.color,
-      -4,
-      4
-    );
-    var sharpness = clamp(profile.sharpBase + (darkScene ? -1 : 0) + slotDelta + modifiers.sharpness, -4, 4);
-    var noiseReduction = clamp(-2 + (darkScene ? 1 : 0) + (slot === 2 ? 1 : 0), -4, 4);
-    var clarity = clamp(profile.clarityBase + slotDelta + modifiers.clarity, -5, 5);
-    var grain = profile.grainModes[slot];
-    var colorChrome = profile.chromeModes[slot];
-    var fxBlue = profile.fxModes[slot];
+    if (useAnchor) {
+      dynamicRange = previousRecipe.dynamicRange;
+      wbR = previousRecipe.wbR || 0;
+      wbB = previousRecipe.wbB || 0;
+      color = previousRecipe.color === undefined ? color : previousRecipe.color;
+      sharpness = previousRecipe.sharpness;
+      clarity = previousRecipe.clarity;
+      grain = previousRecipe.grain;
+      colorChrome = previousRecipe.colorChrome || '关闭';
+      fxBlue = previousRecipe.fxBlue || '关闭';
+      monoWarmCool = previousRecipe.monoWarmCool || 0;
+      monoGreenMagenta = previousRecipe.monoGreenMagenta || 0;
+    }
+
+    wbR = clamp(intValue(wbR + modifiers.wbR), -9, 9);
+    wbB = clamp(intValue(wbB + modifiers.wbB), -9, 9);
+    highlight = clamp(intValue(highlight + modifiers.highlight), -2, 4);
+    shadow = clamp(intValue(shadow + modifiers.shadow), -2, 4);
+    color = clamp(intValue(color + modifiers.color), -4, 4);
+    sharpness = clamp(intValue(sharpness + modifiers.sharpness), -4, 4);
+    clarity = clamp(intValue(clarity + modifiers.clarity), -5, 5);
+    monoWarmCool = clamp(intValue(monoWarmCool + modifiers.monoWarmCool), -9, 9);
+    monoGreenMagenta = clamp(intValue(monoGreenMagenta + modifiers.monoGreenMagenta), -9, 9);
 
     if (modifiers.forceCleanGrain) {
       grain = '关闭';
@@ -673,89 +1180,121 @@
       colorChrome = slot === 0 ? '弱' : '强';
     }
 
-    var grainSize = grain === '关闭' ? '—' : slot === 2 ? '大' : '小';
-    var exposureValue = highlightRisk ? -0.3 : darkScene ? 0.3 : slot === 2 ? -0.2 : 0;
-    exposureValue = clamp(exposureValue + modifiers.exposure, -1, 1);
+    var grainSize = grain === '关闭' ? '—' : grain === '强' ? '大' : '小';
     var recipe = {
       kind: isBw ? 'bw' : 'color',
       code: SLOT_META[slot].code,
-      name: profile.names[slot],
       filmSimulation: film,
       dynamicRange: dynamicRange,
-      wbR: wbR,
-      wbB: wbB,
       highlight: highlight,
       shadow: shadow,
-      color: color,
       sharpness: sharpness,
-      noiseReduction: noiseReduction,
+      noiseReduction: clamp(-2 + (darkScene ? 1 : 0) + (slot === 2 ? 1 : 0), -4, 4),
       clarity: clarity,
       grain: grain,
       grainSize: grainSize,
-      colorChrome: colorChrome,
-      fxBlue: fxBlue,
-      exposure: formatEv(exposureValue),
-      iso: dynamicRange === 'DR100' ? '自动' : '自动；最低感光度需满足 ' + dynamicRange,
+      iso: dynamicRange === 'DR100' ? '自动' : '自动（配合 ' + dynamicRange + '）',
       role: SLOT_META[slot].role,
-      risk: SLOT_META[slot].risk,
-      compatibility: buildCompatibilityNote(film, isBw, cameraModel)
+      risk: '',
+      exposureAdvice: '',
+      changeNote: '',
+      monoWarmCool: monoWarmCool,
+      monoGreenMagenta: monoGreenMagenta
     };
 
     if (isBw) {
-      recipe.bwFilter = profile.filters[slot];
-      recipe.bwTone = slot === 2 ? 'R+1' : slot === 1 ? 'B+1' : '0';
+      recipe.monoColor = monoColorText(monoWarmCool, monoGreenMagenta);
+    } else {
+      recipe.wbR = wbR;
+      recipe.wbB = wbB;
+      recipe.color = color;
+      recipe.colorChrome = colorChrome;
+      recipe.fxBlue = fxBlue;
     }
 
-    if (round === 1) {
-      recipe.changeNote = SLOT_META[slot].change;
-    } else {
-      recipe.changeNote = '针对“' + feedbackSummary + '”：' + modifiers.changes.join('；') + '。';
-    }
+    recipe.name = buildRecipeName(recipe, subjectKey);
+    recipe.risk = buildRiskNote(recipe, analysis);
+    recipe.exposureAdvice = getExposureAdvice(analysis, recipe, subjectKey);
+    recipe.changeNote = round === 1
+      ? SLOT_META[slot].change
+      : '针对“' + parsed.raw + '”：' + modifiers.changes.join('；') + '。';
     recipe.quickLine = buildQuickLine(recipe);
     return recipe;
   }
 
-  function buildOutput(analysis, lookKey, cameraModel, round, feedbackText) {
-    var profile = getProfile(lookKey, analysis);
-    var signals = getFeedbackSignals(feedbackText);
-    var modifiers = buildModifiers(signals);
-    var films = selectFilms(profile, modifiers, round);
-    var feedbackSummary = signals.length ? signals.map(function (signal) {
-      return signal.label;
-    }).join('、') : '';
+  function ensureUniqueNames(recipes) {
+    var suffixes = ['稳妥', '平衡', '强化'];
+    for (var index = 0; index < recipes.length; index += 1) {
+      for (var previous = 0; previous < index; previous += 1) {
+        if (recipes[index].name === recipes[previous].name) {
+          recipes[index].name += ' · ' + suffixes[index];
+          recipes[index].quickLine = buildQuickLine(recipes[index]);
+        }
+      }
+    }
+  }
+
+  function buildOutput(analysis, lookKey, subjectKey, round, feedbackText, previousOutput) {
+    var profileKey = resolveProfileKey(lookKey, subjectKey, analysis);
+    var profile = STYLE_PROFILES[profileKey] || STYLE_PROFILES.natural;
+    var parsed = parseFeedback(feedbackText);
+    var modifiers = buildModifiers(parsed);
+    var films = selectFilms(profile, modifiers, round, previousOutput, parsed);
     var recipes = films.map(function (film, index) {
-      return buildRecipe(index, film, analysis, profile, modifiers, round, feedbackSummary, cameraModel);
+      var previousRecipe = null;
+      if (previousOutput && (parsed.keepStyle || parsed.preserveWarm || parsed.preserveCool || parsed.keepColor)) {
+        if (index === 1 && parsed.preferredSlot !== null) {
+          previousRecipe = previousOutput.recipes[parsed.preferredSlot] || null;
+        } else if (index < previousOutput.recipes.length) {
+          previousRecipe = previousOutput.recipes[index];
+        }
+      }
+      return buildRecipe(index, film, analysis, profile, modifiers, round, parsed, previousRecipe, subjectKey);
     });
 
+    ensureUniqueNames(recipes);
     return {
       profile: profile,
-      signals: signals,
+      profileKey: profileKey,
+      targetLabel: lookKey === 'auto' ? '自动推荐 · ' + profile.label : LOOK_LABELS[lookKey],
+      parsed: parsed,
       modifiers: modifiers,
-      feedbackSummary: feedbackSummary,
+      feedbackSummary: modifiers.changes.length ? modifiers.changes.join('、') : '现场基准与目标感觉',
       recipes: recipes
     };
   }
 
+  function percent(value) {
+    return Math.round(value * 100) + '%';
+  }
+
+  function rgbText(analysis) {
+    return 'R' + Math.round(analysis.averageR) + ' G' + Math.round(analysis.averageG) + ' B' + Math.round(analysis.averageB);
+  }
+
   function renderAnalysis() {
     var analysis = state.analysis;
-    var subjectText = state.sceneContext || '未填写，主要依据照片光线判断';
-    var cameraText = state.cameraModel || '未填写，特殊参数按机身菜单确认';
-    var targetText = elements.lookSelect.options[elements.lookSelect.selectedIndex].text;
+    var targetText = LOOK_LABELS[state.lookKey] || LOOK_LABELS.auto;
     var summary = analysis.lightLabel + '，' + analysis.contrastLabel + '，' + analysis.colorLabel + '。';
 
     elements.sceneSummary.innerHTML =
-      '<p class="summary-label">本地分析摘要</p>' +
+      '<p class="summary-label">本地特征摘要</p>' +
       '<p class="summary-text">' + escapeHtml(summary) + '</p>' +
-      '<p class="summary-subtext">主要风险：' + escapeHtml(analysis.risks.join('、')) +
-      '<br />主体/场景：' + escapeHtml(subjectText) +
-      '<br />相机：' + escapeHtml(cameraText) + ' · 方向：' + escapeHtml(targetText) + '</p>';
+      '<p class="summary-subtext">主体：' + escapeHtml(analysis.subjectLabel) +
+      '<br />目标感觉：' + escapeHtml(targetText) +
+      '<br />主要风险：' + escapeHtml(analysis.risks.join('、')) + '</p>';
 
     var metrics = [
-      { label: '亮度', value: Math.round(analysis.averageLuminance / 255 * 100) + '%' },
-      { label: '反差', value: analysis.contrastLabel },
-      { label: '环境色', value: analysis.colorLabel },
-      { label: '高光占比', value: Math.round(analysis.highlightRatio * 100) + '%' },
-      { label: '暗部占比', value: Math.round(analysis.shadowRatio * 100) + '%' },
+      { label: '整体亮度', value: Math.round(analysis.averageLuminance / 255 * 100) + '%' },
+      { label: '高光比例', value: percent(analysis.highlightRatio) },
+      { label: '暗部比例', value: percent(analysis.shadowRatio) },
+      { label: '整体反差', value: Math.round(analysis.contrast) + ' /255' },
+      { label: 'RGB 色偏', value: rgbText(analysis) },
+      { label: '整体饱和度', value: percent(analysis.saturation) },
+      { label: '冷暖倾向', value: analysis.temperatureLabel + ' · 暖' + percent(analysis.warmRatio) + ' / 冷' + percent(analysis.coolRatio) },
+      { label: '蓝 / 绿占比', value: percent(analysis.blueRatio) + ' / ' + percent(analysis.greenRatio) },
+      { label: '局部亮度差', value: Math.round(analysis.localBrightnessRange) + ' /255' },
+      { label: '局部色彩差', value: Math.round(analysis.localColorRange) + ' /255' },
       { label: '判断置信度', value: analysis.confidence }
     ];
 
@@ -765,7 +1304,7 @@
     }).join('');
 
     elements.analysisNote.textContent =
-      '依据照片缩略采样的平均亮度、像素反差和 RGB 色彩倾向估计；不读取 EXIF，不联网，不上传照片。';
+      '照片只在本地设备进行 Canvas/JavaScript 特征分析：包含整体与分区亮度、反差、RGB、饱和度、冷暖以及蓝绿暖色占比。不上传照片；指标是估计值，主体和感觉由你的选择补充。';
   }
 
   function renderRecipeCard(recipe, index) {
@@ -773,18 +1312,16 @@
     if (recipe.kind === 'bw') {
       rows = [
         ['胶片模拟', recipe.filmSimulation],
-        ['黑白滤镜', recipe.bwFilter],
         ['动态范围', recipe.dynamicRange],
         ['动态范围优先', '关闭'],
         ['高光', recipe.highlight],
         ['阴影', recipe.shadow],
         ['锐度', recipe.sharpness],
         ['高 ISO 降噪', recipe.noiseReduction],
-        ['清晰度', recipe.clarity + '（机型支持时）'],
+        ['清晰度', recipe.clarity],
         ['颗粒效果', recipe.grain],
-        ['颗粒大小', recipe.grainSize + '（机型支持时）'],
-        ['黑白调色', recipe.bwTone + '（机型支持时）'],
-        ['曝光补偿', recipe.exposure],
+        ['颗粒大小', recipe.grainSize],
+        ['MONOCHROMATIC COLOR', recipe.monoColor],
         ['ISO', recipe.iso]
       ];
     } else {
@@ -799,12 +1336,11 @@
         ['色彩', recipe.color],
         ['锐度', recipe.sharpness],
         ['高 ISO 降噪', recipe.noiseReduction],
-        ['清晰度', recipe.clarity + '（机型支持时）'],
+        ['清晰度', recipe.clarity],
         ['颗粒效果', recipe.grain],
-        ['颗粒大小', recipe.grainSize + '（机型支持时）'],
-        ['色彩效果', recipe.colorChrome + '（机型支持时）'],
-        ['彩色FX蓝色', recipe.fxBlue + '（机型支持时）'],
-        ['曝光补偿', recipe.exposure],
+        ['颗粒大小', recipe.grainSize],
+        ['色彩效果', recipe.colorChrome],
+        ['彩色FX蓝色', recipe.fxBlue],
         ['ISO', recipe.iso]
       ];
     }
@@ -827,7 +1363,7 @@
       '<div class="recipe-notes">' +
       '<p><strong>本套变化：</strong>' + escapeHtml(recipe.changeNote) + '</p>' +
       '<p class="risk"><strong>取舍：</strong>' + escapeHtml(recipe.risk) + '</p>' +
-      '<p><strong>兼容：</strong>' + escapeHtml(recipe.compatibility) + '</p>' +
+      '<p><strong>【拍摄曝光建议】：</strong>' + escapeHtml(recipe.exposureAdvice) + '</p>' +
       '<p class="quick-line" tabindex="0">' + escapeHtml(recipe.quickLine) + '</p>' +
       '<p class="copy-hint">长按或拖选上面一行，手动复制到备忘录。</p>' +
       '</div>' +
@@ -838,17 +1374,16 @@
     var output = state.output;
     renderAnalysis();
     elements.roundBadge.textContent = '第 ' + state.round + ' 轮';
-    elements.recipeContext.textContent = '方向：' + output.profile.label +
-      (state.cameraModel ? ' · ' + state.cameraModel : '');
+    elements.recipeContext.textContent = '主体：' + state.analysis.subjectLabel +
+      ' · 目标：' + output.targetLabel;
     elements.recipesGrid.innerHTML = output.recipes.map(renderRecipeCard).join('');
     elements.resultsSection.hidden = false;
   }
 
   function getCurrentInputs() {
     return {
-      cameraModel: elements.cameraModel.value.trim(),
-      lookKey: elements.lookSelect.value,
-      sceneContext: elements.sceneContext.value.trim()
+      subjectKey: elements.subjectSelect.value,
+      lookKey: elements.lookSelect.value
     };
   }
 
@@ -900,12 +1435,11 @@
     var inputs = getCurrentInputs();
     try {
       var metrics = collectImageMetrics(elements.previewImage);
-      state.cameraModel = inputs.cameraModel;
+      state.subjectKey = inputs.subjectKey;
       state.lookKey = inputs.lookKey;
-      state.sceneContext = inputs.sceneContext;
-      state.analysis = classifyScene(metrics, state.sceneContext);
+      state.analysis = classifyScene(metrics, state.subjectKey);
       state.round = 1;
-      state.output = buildOutput(state.analysis, state.lookKey, state.cameraModel, state.round, '');
+      state.output = buildOutput(state.analysis, state.lookKey, state.subjectKey, state.round, '', null);
       renderResults();
       setMessage(elements.inputMessage, '已生成 3 套方案；先试方案 A，再根据现场反馈调整。', 'success');
       elements.resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -922,23 +1456,21 @@
 
     var feedback = elements.feedbackInput.value.trim();
     if (feedback.length < 2) {
-      setMessage(elements.feedbackMessage, '请写出至少一个原因，例如“太黄、太灰、太硬、不够复古或高光溢出”。', 'error');
+      setMessage(elements.feedbackMessage, '请写出具体原因，或点击上面的快捷反馈。', 'error');
       return;
     }
 
-    var signals = getFeedbackSignals(feedback);
-    if (!signals.length) {
-      setMessage(elements.feedbackMessage, '我还没识别出具体方向；请补充颜色、反差、曝光、胶片感或清透度方面的问题。', 'error');
+    var parsed = parseFeedback(feedback);
+    if (!parsed.canGenerate) {
+      setMessage(elements.feedbackMessage, '这句话暂时无法可靠解析；请点击快捷反馈，或补充颜色、明暗、反差、颗粒、清透度和风格方向。', 'error');
       return;
     }
 
     var inputs = getCurrentInputs();
-    state.cameraModel = inputs.cameraModel;
+    state.subjectKey = inputs.subjectKey;
     state.lookKey = inputs.lookKey;
-    state.sceneContext = inputs.sceneContext;
-    state.analysis.subject = state.sceneContext || state.analysis.subject;
     state.round += 1;
-    state.output = buildOutput(state.analysis, state.lookKey, state.cameraModel, state.round, feedback);
+    state.output = buildOutput(state.analysis, state.lookKey, state.subjectKey, state.round, feedback, state.output);
     renderResults();
     setMessage(
       elements.feedbackMessage,
