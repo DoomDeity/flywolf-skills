@@ -3,7 +3,7 @@ name: raw-photo-cull
 description: First-pass culling for large portrait/photo folders, usually around hundreds to 1000+ images, to select promising originals for later retouching and a second round of selection. Prioritize hard-to-fix subject qualities and preserve variety; do not reject photos only for fixable composition, color, lighting, crop, or background issues.
 metadata:
   short-description: 原片潜力粗筛
-  version: "1.0.1"
+  version: "2.0"
 ---
 
 # 原片潜力粗筛
@@ -11,6 +11,10 @@ metadata:
 ## 中文介绍
 
 面向数百到上千张原片的第一轮筛选，从大批量照片中快速保留一批值得继续精修和二次挑选的候选片。重点判断表情、眼神、动作、肢体状态、情绪氛围、瞬间感和场景多样性等后期难以修复的核心质量，不会仅因为构图、裁切、色彩、光线或背景杂物等可后期调整的问题而轻易淘汰。筛选时优先保证不同场景、角度、造型和情绪都有代表性照片，避免某一组相似画面占据全部名额。适合从约数百至上千张原片中，粗筛出几十到一百张左右具有后续价值的照片，具体数量根据素材质量和场景丰富度灵活调整。
+
+## Runtime
+
+This standard release uses Python 3 and Pillow for image decoding, EXIF orientation, contact-sheet rendering, and preview generation. Pillow is available on Windows and macOS; install the dependency from the bundled `requirements.txt` when the host environment does not already provide it.
 
 ## Purpose
 

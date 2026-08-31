@@ -11,8 +11,8 @@ This repository is a public skill collection. Each folder is an independent skil
 | FlyWolf-github-skill-radar | Finds useful GitHub projects that may be worth installing, auditing, watching, or packaging as reusable AI-agent skills. |
 | FlyWolf-video-copy-extractor | Extracts spoken copy from local videos or short-video links and saves reusable transcript files. |
 | FlyWolf-fuji-scene-recipe-master | Analyzes an uploaded scene photo and generates 3 clearly different Fujifilm JPEG recipes; after user feedback, generates 3 new recipes while retaining the preferred direction. |
-| FlyWolf-raw-photo-cull | Performs a first-pass potential cull across large photo batches and keeps a diverse retouching shortlist. |
-| FlyWolf-moments-photo-selector | Refines a screened shortlist into final selects and can arrange, group, and rename the working copies. |
+| FlyWolf-raw-photo-cull | 2.0 standard release: performs a first-pass potential cull across large photo batches and keeps a diverse retouching shortlist. |
+| FlyWolf-moments-photo-selector | 2.0 standard release: refines a screened shortlist into final selects and can arrange, group, and rename the working copies. |
 
 ## How To Use
 
@@ -62,8 +62,8 @@ Pure instruction skills do not need scripts or runtime dependencies. Tool-based 
 | FlyWolf-github-skill-radar | 从 GitHub 发现值得安装、审计、观察，或适合封装成 AI Agent Skill 的项目。 |
 | FlyWolf-video-copy-extractor | 从本地视频或小红书、抖音、B站、快手等链接中提取口播文案并保存为文本文件。 |
 | FlyWolf-fuji-scene-recipe-master | 上传现场照片后分析现场，输出 3 套明显不同的 Fujifilm JPEG 配方；用户说明不满意原因后，再生成 3 套新方案。 |
-| FlyWolf-raw-photo-cull | 从数百到上千张原片中进行第一轮潜力粗筛，保留值得继续精修和二次挑选的候选片。 |
-| FlyWolf-moments-photo-selector | 从已经粗筛的候选片中进行成片精选，并按需要完成分组、排序和命名。 |
+| FlyWolf-raw-photo-cull | 2.0 标准版：从数百到上千张原片中进行第一轮潜力粗筛，保留值得继续精修和二次挑选的候选片。 |
+| FlyWolf-moments-photo-selector | 2.0 标准版：从已经粗筛的候选片中进行成片精选，并按需要完成分组、排序和命名。 |
 
 ## FlyWolf-fuji-scene-recipe-master 3.0
 

@@ -3,7 +3,7 @@ name: moments-photo-selector
 description: Select, refine, group, order, and rename a final set from an already screened photo shortlist for publishing, sharing, or delivery. Focus on expression, sharpness, pose, composition, completeness, rhythm, stylistic consistency, and duplicate control while preserving necessary variety.
 metadata:
   short-description: 成片精选定稿
-  version: "1.0.1"
+  version: "2.0"
 ---
 
 # 成片精选定稿
@@ -11,6 +11,10 @@ metadata:
 ## 中文介绍
 
 面向已经完成粗筛的候选照片进行第二轮精挑，从几十到一百张左右的候选片中进一步选出最适合最终发布、分享或交付的一组精选照片。重点比较表情、清晰度、姿态、构图、画面完整度、视觉节奏、风格统一性和照片之间的重复度，在保留必要丰富度的同时进一步淘汰相似帧和次优画面。对于有明确发布需求的场景，还可以继续完成照片分组、顺序安排、横竖图组合和文件命名，最终形成约十到三十张左右的精选成片。具体数量不锁死，以最终整体质量和发布需求为准。
+
+## Runtime
+
+This standard release uses Python 3 and Pillow for EXIF-aware image decoding, contact-sheet rendering, final previews, and orientation validation. It works on Windows and macOS. Install the dependency from the bundled `requirements.txt` when the host environment does not already provide it.
 
 ## Workflow
 
@@ -45,7 +49,7 @@ Collage constraints:
 2. Generate contact sheets:
 
 ```powershell
-& "<skill>/scripts/moments_photo_selector.ps1" -SourcePath "<photo-folder>" -OutputPath "<output-folder>" -MakeContactSheets
+python "<skill>/scripts/moments_photo_selector.py" --source "<photo-folder>" --output "<output-folder>" --contact-sheets
 ```
 
 3. Visually inspect contact sheets and decide:
@@ -66,13 +70,13 @@ target,source
 5. Copy and rename from the original folder into a final working folder:
 
 ```powershell
-& "<skill>/scripts/moments_photo_selector.ps1" -SourcePath "<photo-folder>" -OutputPath "<output-folder>" -MappingCsv "<mapping.csv>" -CopyAndRename -Validate -MakePreview
+python "<skill>/scripts/moments_photo_selector.py" --source "<photo-folder>" --output "<output-folder>" --mapping "<mapping.csv>" --copy-and-rename --validate --preview
 ```
 
 If the user explicitly says to rename an existing selected folder directly, use:
 
 ```powershell
-& "<skill>/scripts/moments_photo_selector.ps1" -SourcePath "<selected-folder>" -OutputPath "<selected-folder>" -MappingCsv "<mapping.csv>" -RenameExisting -Validate -MakePreview
+python "<skill>/scripts/moments_photo_selector.py" --source "<selected-folder>" --output "<selected-folder>" --mapping "<mapping.csv>" --rename-existing --validate --preview
 ```
 
 For direct rename, the mapping CSV still uses `target,source`, where `source` is the current filename in the selected folder and `target` is the new filename.
