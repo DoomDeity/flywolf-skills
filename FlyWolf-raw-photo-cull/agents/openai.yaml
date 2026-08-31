@@ -1,0 +1,7 @@
+interface:
+  display_name: "原片潜力粗筛"
+  short_description: "从大批量原片中筛出值得继续精修和二次挑选的候选片。"
+  default_prompt: "Use $raw-photo-cull to perform a first-pass potential cull and keep 50-100 promising photos for retouching from this folder: <path>"
+
+policy:
+  allow_implicit_invocation: false

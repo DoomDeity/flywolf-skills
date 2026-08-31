@@ -1,0 +1,7 @@
+interface:
+  display_name: "成片精选定稿"
+  short_description: "从粗筛候选片中选出最终精选成片，并完成分组、排序和命名。"
+  default_prompt: "Use $moments-photo-selector to refine a screened shortlist into final selects, groups, order, and filenames from this folder: <path>"
+
+policy:
+  allow_implicit_invocation: false
